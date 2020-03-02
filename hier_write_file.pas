@@ -18,6 +18,15 @@ procedure hier_write_file_open (       {open file for writing hierarchy}
   val_param;
 
 begin
+  file_open_write_text (               {open the file}
+    fnam, suff,                        {file name}
+    wr.conn,                           {returned connection to the file}
+    stat);
+  if sys_error(stat) then return;
+
+  wr.buf.max := size_char(wr.buf.str); {init rest of writing state}
+  wr.buf.len := 0;
+  wr.lev := 0;
   end;
 {
 ********************************************************************************
@@ -33,5 +42,7 @@ procedure hier_write_file_close (      {end writing hierarchy to file, close fil
   val_param;
 
 begin
+ file_close (wr.conn);                 {close the file}
+ wr.buf.len := 0;                      {reset other state}
+  wr.lev := 0;
   end;
-
