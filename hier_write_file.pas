@@ -42,7 +42,8 @@ procedure hier_write_file_close (      {end writing hierarchy to file, close fil
   val_param;
 
 begin
- file_close (wr.conn);                 {close the file}
- wr.buf.len := 0;                      {reset other state}
+  sys_error_none (stat);               {init to no error encountered}
+  file_close (wr.conn);                {close the file}
+  wr.buf.len := 0;                     {reset other state}
   wr.lev := 0;
   end;
