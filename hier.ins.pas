@@ -12,6 +12,8 @@ const
   hier_stat_badint_k = 5;              {bad integer parameter}
   hier_stat_badfp_k = 6;               {bad floating point parameter}
   hier_stat_badbool_k = 7;             {bad boolean parameter}
+  hier_stat_badcmd_k = 8;              {bad command}
+  hier_stat_badkeyw_k = 9;             {bad keyword}
 
 type
   hier_write_p_t = ^hier_write_t;
@@ -33,6 +35,22 @@ type
 {
 *   Functions and subroutines.
 }
+procedure hier_err_badcmd (            {set STAT for bad command on curr line}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  in      cmd: univ string_var_arg_t;  {command name}
+  out     stat: sys_err_t);            {added: line number, file name}
+  val_param; extern;
+
+procedure hier_err_line_file (         {add line number and file name to STAT}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     stat: sys_err_t);            {added: line number, file name}
+  val_param; extern;
+
+procedure hier_err_missing (           {set STAT for missing parameter at curr line}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     stat: sys_err_t);
+  val_param; extern;
+
 procedure hier_read_block_start (      {start reading one subordinate level down}
   in out  rd: hier_read_t);            {hierarchy reading state}
   val_param; extern;
@@ -66,6 +84,26 @@ procedure hier_read_int (              {read next token as integer}
   out     stat: sys_err_t);            {completion status}
   val_param; extern;
 
+function hier_read_keyw (              {read next token as keyword}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  in out  keyw: univ string_var_arg_t) {upper case token, empty str on EOL}
+  :boolean;                            {token found}
+  val_param; extern;
+
+function hier_read_keyw_pick (         {read keyword, pick from list}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  in      list: string;                {keywords, upper case, blank separated}
+  out     stat: sys_err_t)             {completion status, no error on match}
+  :sys_int_machine_t;                  {1-N list entry, 0 bad keyword, -1 no keyword}
+  val_param; extern;
+
+function hier_read_keyw_req (          {read required keyword from input line}
+  in out  rd: hier_read_t;             {input file reading state}
+  in out  keyw: univ string_var_arg_t; {the returned keyword, empty str on EOL}
+  out     stat: sys_err_t)             {completion status}
+  :boolean;                            {keyword found, no error}
+  val_param; extern;
+
 function hier_read_line (              {read next line from input file}
   in out  rd: hier_read_t;             {hierarchy reading state}
   out     stat: sys_err_t)             {completion status}
@@ -89,6 +127,13 @@ function hier_read_tk (                {read next token from input line}
   in out  rd: hier_read_t;             {input file reading state}
   in out  tk: univ string_var_arg_t)   {the returned token, empty str on EOL}
   :boolean;                            {token found}
+  val_param; extern;
+
+function hier_read_tk_req (            {read required token from input line}
+  in out  rd: hier_read_t;             {input file reading state}
+  in out  tk: univ string_var_arg_t;   {the returned token, empty str on EOL}
+  out     stat: sys_err_t)             {completion status}
+  :boolean;                            {token found, no error}
   val_param; extern;
 
 procedure hier_write_blankline (       {write blank line unless at start of file}

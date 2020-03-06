@@ -4,27 +4,14 @@ define hier_read_line_next;
 define hier_read_eol;
 define hier_read_block_start;
 define hier_read_tk;
+define hier_read_tk_req;
+define hier_read_keyw;
+define hier_read_keyw_req;
+define hier_read_keyw_pick;
 define hier_read_int;
 define hier_read_fp;
 define hier_read_bool;
 %include 'hier2.ins.pas';
-{
-********************************************************************************
-*
-*   Local subroutine ERR_LINE_FILE (RD, STAT)
-*
-*   Add the line number and file name as the next two parameters to STAT.  STAT
-*   must already be set to a specific error code.
-}
-procedure err_line_file (              {add line number and file name to STAT}
-  in out  rd: hier_read_t;             {hierarchy reading state}
-  out     stat: sys_err_t);            {added: line number, file name}
-  val_param; internal;
-
-begin
-  sys_stat_parm_int (rd.conn.lnum, stat); {add line number}
-  sys_stat_parm_vstr (rd.conn.tnam, stat); {add file name}
-  end;
 {
 ********************************************************************************
 *
@@ -70,7 +57,7 @@ begin
   rd.llev := (rd.p - 1) div 2;         {make nesting level of this line from indentation}
   if ((rd.llev * 2) + 1) <> rd.p then begin {invalid indentation ?}
     sys_stat_set (hier_subsys_k, hier_stat_badindent_k, stat); {set error status}
-    err_line_file (rd, stat);          {add line number, file name}
+    hier_err_line_file (rd, stat);     {add line number, file name}
     end;
   goto leave;
 
@@ -124,7 +111,7 @@ begin
 
   sys_stat_set (                       {unexpected subordinate level error}
     hier_subsys_k, hier_stat_lower_k, stat);
-  err_line_file (rd, stat);            {add line number, file name}
+  hier_err_line_file (rd, stat);       {add line number, file name}
   end;
 {
 ********************************************************************************
@@ -197,7 +184,7 @@ begin
 
   sys_stat_set (hier_subsys_k, hier_stat_extratk_k, stat); {extra token}
   sys_stat_parm_vstr (tk, stat);       {the extra token}
-  err_line_file (rd, stat);            {add line number and file name}
+  hier_err_line_file (rd, stat);       {add line number and file name}
   rd.p := p;                           {restore parse index to before extra token}
   hier_read_eol := false;              {indicate not at end of line}
   end;
@@ -248,6 +235,34 @@ begin
 {
 ********************************************************************************
 *
+*   Function HIER_READ_TK_REQ (RD, TK, STAT)
+*
+*   Read the next token from the input line into TK.  If a token is found, the
+*   function returns TRUE and STAT is set to no error.  If no token is found,
+*   then the function returns FALSE with STAT set to missing parameter error.
+}
+function hier_read_tk_req (            {read required token from input line}
+  in out  rd: hier_read_t;             {input file reading state}
+  in out  tk: univ string_var_arg_t;   {the returned token, empty str on EOL}
+  out     stat: sys_err_t)             {completion status}
+  :boolean;                            {token found, no error}
+  val_param;
+
+begin
+  if hier_read_tk (rd, tk)             {try to read the token}
+    then begin                         {got it}
+      sys_error_none (stat);           {no error}
+      hier_read_tk_req := true;
+      end
+    else begin                         {no parameter}
+      hier_err_missing (rd, stat);     {set missing parameter error}
+      hier_read_tk_req := false;
+      end
+    ;
+  end;
+{
+********************************************************************************
+*
 *   Function HIER_READ_KEYW (RD, KEYW)
 *
 *   Read the next token on the current input line and return it all upper case
@@ -263,6 +278,83 @@ function hier_read_keyw (              {read next token as keyword}
 begin
   hier_read_keyw := hier_read_tk (rd, keyw); {get the raw token}
   string_upcase (keyw);                {return the token in upper case}
+  end;
+{
+********************************************************************************
+*
+*   Function HIER_READ_KEYW_REQ (RD, KEYW, STAT)
+*
+*   Get the next token as a keyword into KEYW.  If a token is found, the
+*   function returns TRUE and STAT is set to no error.  If no token is found,
+*   then the function returns FALSE with STAT set to missing parameter error.
+}
+function hier_read_keyw_req (          {read required keyword from input line}
+  in out  rd: hier_read_t;             {input file reading state}
+  in out  keyw: univ string_var_arg_t; {the returned keyword, empty str on EOL}
+  out     stat: sys_err_t)             {completion status}
+  :boolean;                            {keyword found, no error}
+  val_param;
+
+begin
+  if hier_read_keyw (rd, keyw)         {try to read the keyword}
+    then begin                         {got it}
+      sys_error_none (stat);           {no error}
+      hier_read_keyw_req := true;
+      end
+    else begin                         {no parameter}
+      hier_err_missing (rd, stat);     {set missing parameter error}
+      hier_read_keyw_req := false;
+      end
+    ;
+  end;
+{
+********************************************************************************
+*
+*   Function HIER_READ_KEYW_PICK (RD, LIST, STAT)
+*
+*   Get the next token as a keyword and find which keyword in a supplied list it
+*   is.  LIST is the list of possible keywords, upper case and separated by
+*   blanks.
+*
+*   When the keyword read from the file matches a keyword in the list, then the
+*   function returns the 1-N number of the matching list entry, and STAT is set
+*   to no error.
+*
+*   The function can also return the following special values:
+*
+*     0    Keyword did not match any list entry.  STAT set to bad keyword error.
+*
+*     -1   No keyword was found.  STAT is set to missing parameter error.
+}
+function hier_read_keyw_pick (         {read keyword, pick from list}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  in      list: string;                {keywords, upper case, blank separated}
+  out     stat: sys_err_t)             {completion status, no error on match}
+  :sys_int_machine_t;                  {1-N list entry, 0 bad keyword, -1 no keyword}
+  val_param;
+
+var
+  keyw: string_var32_t;                {the keyword read from the file}
+  pick: sys_int_machine_t;             {number of matching list entry}
+
+begin
+  keyw.max := size_char(keyw.str);     {init local var string}
+
+  if not hier_read_keyw_req (rd, keyw, stat) then begin {no keyword ?}
+    hier_read_keyw_pick := -1;
+    return;
+    end;
+
+  string_tkpick80 (keyw, list, pick);  {pick the keyword from the list}
+  if pick = 0 then begin               {no match ?}
+    sys_stat_set (hier_subsys_k, hier_stat_badkeyw_k, stat); {bad keyword}
+    sys_stat_parm_vstr (keyw, stat);   {the keyword}
+    hier_err_line_file (rd, stat);     {add line number and file name}
+    hier_read_keyw_pick := 0;          {indicate bad keyword}
+    return;
+    end;
+
+  hier_read_keyw_pick := pick;         {return 1-N number of matching list entry}
   end;
 {
 ********************************************************************************
@@ -287,7 +379,7 @@ begin
 
   if not hier_read_tk (rd, tk) then begin {no token ?}
     sys_stat_set (hier_subsys_k, hier_stat_noparm_k, stat);
-    err_line_file (rd, stat);
+    hier_err_line_file (rd, stat);
     ii := 0;
     return;
     end;
@@ -296,7 +388,7 @@ begin
   if sys_error(stat) then begin        {failed to find integer value ?}
     sys_stat_set (hier_subsys_k, hier_stat_badint_k, stat);
     sys_stat_parm_vstr (tk, stat);
-    err_line_file (rd, stat);
+    hier_err_line_file (rd, stat);
     end;
   end;
 {
@@ -323,7 +415,7 @@ begin
 
   if not hier_read_tk (rd, tk) then begin {no token ?}
     sys_stat_set (hier_subsys_k, hier_stat_noparm_k, stat);
-    err_line_file (rd, stat);
+    hier_err_line_file (rd, stat);
     fp := 0.0;
     return;
     end;
@@ -332,7 +424,7 @@ begin
   if sys_error(stat) then begin        {failed to find floating point value ?}
     sys_stat_set (hier_subsys_k, hier_stat_badfp_k, stat);
     sys_stat_parm_vstr (tk, stat);
-    err_line_file (rd, stat);
+    hier_err_line_file (rd, stat);
     end;
   end;
 {
@@ -362,7 +454,7 @@ begin
 
   if not hier_read_keyw (rd, tk) then begin {no token ?}
     sys_stat_set (hier_subsys_k, hier_stat_noparm_k, stat);
-    err_line_file (rd, stat);
+    hier_err_line_file (rd, stat);
     tf := false;
     return;
     end;
@@ -377,6 +469,6 @@ begin
   if sys_error(stat) then begin        {failed to find boolean value ?}
     sys_stat_set (hier_subsys_k, hier_stat_badbool_k, stat);
     sys_stat_parm_vstr (tk, stat);
-    err_line_file (rd, stat);
+    hier_err_line_file (rd, stat);
     end;
   end;

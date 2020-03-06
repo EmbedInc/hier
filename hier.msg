@@ -22,3 +22,9 @@ msg err6
 msg err7
   lan english -def
     Parameter "%p1s" on line %p2i of file "%p3s" is not a boolean value.
+msg err8
+  lan english -def
+    Invalid command "%p1s" on line %p2i of file "%p3s".
+msg err9
+  lan english -def
+    Unrecognized keyword "%p1s" encountered on line %p2i of file "%p3s".
