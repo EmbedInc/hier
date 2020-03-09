@@ -101,6 +101,7 @@ begin
 
   if rd.llev = rd.level then begin     {new line is at existing nesting level ?}
     rd.lret := true;                   {remember that this line was returned}
+    hier_read_line := true;            {indicate returning with line at curr level}
     return;                            {return with the new line}
     end;
 
