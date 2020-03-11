@@ -11,6 +11,7 @@ define hier_read_keyw_pick;
 define hier_read_int;
 define hier_read_fp;
 define hier_read_bool;
+define hier_read_string;
 %include 'hier2.ins.pas';
 {
 ********************************************************************************
@@ -472,4 +473,33 @@ begin
     sys_stat_parm_vstr (tk, stat);
     hier_err_line_file (rd, stat);
     end;
+  end;
+{
+********************************************************************************
+*
+*   Subroutine HIER_READ_STRING (RD, STR)
+*
+*   Read the remainder of the current line as a string.  The current line is
+*   always exhausted by this routine.
+}
+procedure hier_read_string (           {read remainder of curr line as string}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  in out  str: univ string_var_arg_t); {returned string}
+  val_param;
+
+var
+  n: sys_int_machine_t;                {number of characters to return}
+  ii: sys_int_machine_t;               {scratch integer and loop counter}
+
+begin
+  n := rd.buf.len - rd.p + 1;          {number of available characters}
+  n := min(n, str.max);                {clip to available room to return chars}
+  str.len := n;                        {set the returned string length}
+
+  for ii := 1 to n do begin            {once for each character to return}
+    str.str[ii] := rd.buf.str[rd.p];   {get this character}
+    rd.p := rd.p + 1;                  {update the reading index}
+    end;                               {back for next character}
+
+  rd.p := rd.buf.len + 1;              {the current line has been used up}
   end;

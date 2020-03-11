@@ -123,6 +123,11 @@ procedure hier_read_open (             {open file for reading hierarchy}
   out     stat: sys_err_t);            {completion status}
   val_param; extern;
 
+procedure hier_read_string (           {read remainder of curr line as string}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  in out  str: univ string_var_arg_t); {returned string}
+  val_param; extern;
+
 function hier_read_tk (                {read next token from input line}
   in out  rd: hier_read_t;             {input file reading state}
   in out  tk: univ string_var_arg_t)   {the returned token, empty str on EOL}
