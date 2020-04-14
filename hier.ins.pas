@@ -212,5 +212,3 @@ procedure hier_write_vtk (             {write var string token to output line}
   in out  wr: hier_write_t;            {output file writing state}
   in      vtk: univ string_var_arg_t); {the string to write as a single token}
   val_param; extern;
-
-

@@ -3,6 +3,16 @@
 module hier_write;
 define hier_write_line;
 define hier_write_blankline;
+define hier_write_vstr;
+define hier_write_str;
+define hier_write_vtk;
+define hier_write_tk;
+define hier_write_int;
+define hier_write_fpf;
+define hier_write_fps;
+define hier_write_onoff;
+define hier_write_block_start;
+define hier_write_block_end;
 %include 'hier2.ins.pas';
 {
 ********************************************************************************
