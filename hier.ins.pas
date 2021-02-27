@@ -110,6 +110,12 @@ function hier_read_line (              {read next line from input file}
   :boolean;                            {at same nesting level, no error}
   val_param; extern;
 
+function hier_read_line_nh (           {read next line, no hierarchy interpretation}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     stat: sys_err_t)             {completion status}
+  :boolean;                            {a line was read, not EOF or error}
+  val_param; extern;
+
 function hier_read_line_next (         {read next line at current or higher level}
   in out  rd: hier_read_t;             {hierarchy reading state}
   out     stat: sys_err_t)             {completion status}

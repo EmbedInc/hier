@@ -1,4 +1,5 @@
 module hier_read;
+define hier_read_line_nh;
 define hier_read_line;
 define hier_read_line_next;
 define hier_read_eol;
@@ -16,6 +17,50 @@ define hier_read_string;
 {
 ********************************************************************************
 *
+*   Local subroutine READLRAW (RD, STAT)
+*
+*   Read the next input line into RD.BUF and init the parse index to the first
+*   non-blank.  Trailing spaces are deleted from the line, but the line is
+*   otherwise not interpreted.
+}
+procedure readlraw (                   {read next line into buffer}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     stat: sys_err_t);            {completion status}
+  val_param; internal;
+
+label
+  eof, leave;
+
+begin
+  sys_error_none (stat);               {init to no error encountered}
+  if rd.llev < 0 then goto eof;        {previously hit end of file ?}
+
+  file_read_text (rd.conn, rd.buf, stat); {read next line from file}
+  if file_eof(stat) then begin         {hit end of file ?}
+    file_close (rd.conn);              {close the file}
+    rd.llev := -1;                     {indicate hit end of file, file closed}
+    goto eof;
+    end;
+  if sys_error(stat) then return;      {hard error ?}
+
+  string_unpad (rd.buf);               {delete all trailing spaces from input line}
+  rd.p := 1;                           {init new input line parse index}
+  while rd.p <= rd.buf.len do begin    {skip over leading blanks}
+    if rd.buf.str[rd.p] <> ' ' then exit; {found first non-blank ?}
+    rd.p := rd.p + 1;                  {this is a blank, advance to next char}
+    end;                               {back to check this new char}
+  goto leave;
+
+eof:                                   {end of file encountered}
+  rd.buf.len := 0;                     {as if empty line}
+  rd.p := 1;
+
+leave:
+  rd.lret := false;                    {init to this line not returned}
+  end;
+{
+********************************************************************************
+*
 *   Local subroutine READLINE (RD, STAT)
 *
 *   Read the next content line into the input buffer.  RD.LLEV is set to the
@@ -29,28 +74,12 @@ procedure readline (                   {read next content line into buffer}
   out     stat: sys_err_t);            {completion status}
   val_param; internal;
 
-label
-  eof, leave;
-
 begin
-  if rd.llev < 0 then goto eof;        {previously hit end of file ?}
-
   while true do begin                  {loop until content line or EOF}
-    if rd.llev < 0 then exit;          {previously hit end of file ?}
-    file_read_text (rd.conn, rd.buf, stat); {read next line from file}
-    if file_eof(stat) then begin       {hit end of file ?}
-      file_close (rd.conn);            {close the file}
-      rd.llev := -1;                   {indicate hit end of file, file closed}
-      goto eof;
-      end;
+    readlraw (rd, stat);               {read raw line into BUF, init P}
     if sys_error(stat) then return;    {hard error ?}
-
-    string_unpad (rd.buf);             {delete all trailing spaces from input line}
+    if rd.llev < 0 then return;        {hit end of file ?}
     if rd.buf.len <= 0 then next;      {ignore blank lines}
-    rd.p := 1;                         {init new input line parse index}
-    while rd.buf.str[rd.p] = ' ' do begin {skip over leading blanks}
-      rd.p := rd.p + 1;
-      end;
     if rd.buf.str[rd.p] = '*' then next; {ignore comment lines}
     exit;                              {this is a real content line}
     end;                               {back to read next line from file}
@@ -60,14 +89,35 @@ begin
     sys_stat_set (hier_subsys_k, hier_stat_badindent_k, stat); {set error status}
     hier_err_line_file (rd, stat);     {add line number, file name}
     end;
-  goto leave;
+  end;
+{
+********************************************************************************
+*
+*   Function HIER_READ_LINE_NH (RD, STAT)
+*
+*   Read the next line from the input file.  The function returns TRUE when an
+*   input line was read, and FALSE if the end of the input file was encountered.
+*   No interpretation of the line is performed except that trailing blanks are
+*   ignored.  The parse index is initialized to the first non-blank character,
+*   or 1 when the line is empty.
+*
+*   No attempt is made to interpret or check for hierarchy levels.  This routine
+*   allows the use of the parsing facilities in the HIER library with ordinary
+*   input files that don't conform to the HIER library hierarchy syntax.
+}
+function hier_read_line_nh (           {read next line, no hierarchy interpretation}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     stat: sys_err_t)             {completion status}
+  :boolean;                            {a line was read, not EOF or error}
+  val_param;
 
-eof:                                   {end of file encountered}
-  rd.buf.len := 0;                     {as if empty line}
-  rd.p := 1;
+begin
+  hier_read_line_nh := false;          {init to not returning with a new line}
 
-leave:
-  rd.lret := false;                    {init to this line not returned}
+  readlraw (rd, stat);                 {get the next raw input line}
+  if sys_error(stat) then return;      {hard error ?}
+
+  hier_read_line_nh := rd.llev >= 0;   {TRUE when didn't hit end of file}
   end;
 {
 ********************************************************************************
