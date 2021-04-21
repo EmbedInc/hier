@@ -51,6 +51,11 @@ procedure hier_err_missing (           {set STAT for missing parameter at curr l
   out     stat: sys_err_t);
   val_param; extern;
 
+function hier_check_noparm (           {check for "no parameter" error}
+  in out  stat: sys_err_t)             {status to check, cleared on "no parameter"}
+  :boolean;                            {TRUE = STAT indicated "no parm" error}
+  val_param; extern;
+
 procedure hier_read_block_start (      {start reading one subordinate level down}
   in out  rd: hier_read_t);            {hierarchy reading state}
   val_param; extern;

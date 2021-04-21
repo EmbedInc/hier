@@ -1,4 +1,5 @@
 hier_err.obj
+hier_check.obj
 hier_read.obj
 hier_read_file.obj
 hier_write.obj
