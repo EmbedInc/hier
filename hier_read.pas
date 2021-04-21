@@ -13,6 +13,7 @@ define hier_read_int;
 define hier_read_fp;
 define hier_read_bool;
 define hier_read_string;
+define hier_read_angle;
 %include 'hier2.ins.pas';
 {
 ********************************************************************************
@@ -552,4 +553,44 @@ begin
     end;                               {back for next character}
 
   rd.p := rd.buf.len + 1;              {the current line has been used up}
+  end;
+{
+********************************************************************************
+*
+*   Subroutine HIER_READ_ANGLE (RD, ANG, STAT)
+*
+*   Read the next token from the current input line and interpret it as angle.
+*   The result is returned in ANG in radians.  STAT is set appropriately if no
+*   token is available, or the token can not be interpreted as an angle.
+*
+*   The angle syntax is defined by routine STRING_T_ANGLE.  See its
+*   documentation for details.  However, briefly, the format is:
+*
+*   <degrees>[:<minutes>[:<seconds>]]
+}
+procedure hier_read_angle (            {read next token as an angle}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     ang: real;                   {returned angle, radians}
+  out     stat: sys_err_t);            {completion status}
+  val_param;
+
+var
+  tk: string_var32_t;                  {scratch token}
+
+begin
+  tk.max := size_char(tk.str);         {init local var string}
+
+  if not hier_read_tk (rd, tk) then begin {no token ?}
+    sys_stat_set (hier_subsys_k, hier_stat_noparm_k, stat);
+    hier_err_line_file (rd, stat);
+    ang := 0.0;
+    return;
+    end;
+
+  string_t_angle (tk, ang, stat);      {interpret the token as an angle}
+  if sys_error(stat) then begin        {error ?}
+    sys_stat_set (hier_subsys_k, hier_stat_badang_k, stat);
+    sys_stat_parm_vstr (tk, stat);
+    hier_err_line_file (rd, stat);
+    end;
   end;

@@ -14,6 +14,7 @@ const
   hier_stat_badbool_k = 7;             {bad boolean parameter}
   hier_stat_badcmd_k = 8;              {bad command}
   hier_stat_badkeyw_k = 9;             {bad keyword}
+  hier_stat_badang_k = 10;             {bad angle}
 
 type
   hier_write_p_t = ^hier_write_t;
@@ -54,6 +55,12 @@ procedure hier_err_missing (           {set STAT for missing parameter at curr l
 function hier_check_noparm (           {check for "no parameter" error}
   in out  stat: sys_err_t)             {status to check, cleared on "no parameter"}
   :boolean;                            {TRUE = STAT indicated "no parm" error}
+  val_param; extern;
+
+procedure hier_read_angle (            {read next token as an angle}
+  in out  rd: hier_read_t;             {hierarchy reading state}
+  out     ang: real;                   {returned angle, radians}
+  out     stat: sys_err_t);            {completion status}
   val_param; extern;
 
 procedure hier_read_block_start (      {start reading one subordinate level down}

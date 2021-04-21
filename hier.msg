@@ -28,3 +28,7 @@ msg err8
 msg err9
   lan english -def
     Unrecognized keyword "%p1s" encountered on line %p2i of file "%p3s".
+msg err10
+  lan english -def
+    Parameter "%p1s" on line %p2i of file "%p3s" can not be interpreted as
+    an angle.
