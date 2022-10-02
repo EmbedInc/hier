@@ -7,6 +7,7 @@ define hier_write_vstr;
 define hier_write_str;
 define hier_write_vtk;
 define hier_write_tk;
+define hier_write_blank;
 define hier_write_int;
 define hier_write_fpf;
 define hier_write_fps;
@@ -151,6 +152,27 @@ begin
 
   string_vstring (vtk, tk, size_char(tk)); {convert to var string}
   hier_write_vtk (wr, vtk);            {write it}
+  end;
+{
+********************************************************************************
+*
+*   Subroutine HIER_WRITE_BLANK (WR)
+*
+*   Write a single blank to the current output line.
+}
+procedure hier_write_blank (           {write single blank to output line}
+  in out  wr: hier_write_t);           {output file writing state}
+  val_param;
+
+var
+  tk: string_var4_t;
+
+begin
+  tk.max := size_char(tk.str);         {init local var string}
+
+  tk.str[1] := ' ';                    {make string to write}
+  tk.len := 1;
+  hier_write_vstr (wr, tk);            {append string to output line}
   end;
 {
 ********************************************************************************

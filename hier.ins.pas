@@ -159,6 +159,10 @@ function hier_read_tk_req (            {read required token from input line}
   :boolean;                            {token found, no error}
   val_param; extern;
 
+procedure hier_write_blank (           {write single blank to output line}
+  in out  wr: hier_write_t);           {output file writing state}
+  val_param; extern;
+
 procedure hier_write_blankline (       {write blank line unless at start of file}
   in out  wr: hier_write_t;            {output file writing state}
   out     stat: sys_err_t);            {completion status}
